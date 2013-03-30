@@ -6,7 +6,7 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--export([start/2, stop/0]).
+-export([start/2]).
 -export([start_sync/0]).
 -export([request/1, request/2]).
 
@@ -18,9 +18,6 @@ start(Host, AuthInfo) ->
 
 start_sync() ->
     application:start(sync).
-
-stop() ->
-    gen_server:cast(?SERVER, logout).
 
 request(Req) ->
     Result = gen_server:call(?SERVER, {call, Req}),
