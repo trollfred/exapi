@@ -27,26 +27,6 @@ request(Req, Params) ->
     Result = gen_server:call(?SERVER, {call, Req, Params}),
     Result.
 
-parse_xapi_request(ReqResult) ->
-    Result = case ReqResult of
-                 {ok,{response,[{struct, PreResult}]}} -> PreResult;
-                 _Other -> {error, unknown}
-             end,
-    Result.
-
-xapi_request(Req, Params, State) ->
-    ReqResult = xmlrpc:call(State#sref.host, 80, "/",{call, Req, [State#sref.sref | Params]}),
-
-    Result = case parse_xapi_request(ReqResult) of
-                 {error, unknown} -> error;
-                 PreResult -> case proplists:get_value('Value', PreResult) of
-                                  {array, List} -> List;
-                                  {struct, Struct} -> Struct;
-                                  String -> String
-                              end
-             end,
-    Result.
-
 init([Host, AuthInfo]) ->
     {ok, {response, [{struct, Result}]}} = xmlrpc:call(Host, 80, "/", {call, 'session.login_with_password', AuthInfo}),
     SessionRef = proplists:get_value('Value', Result),
@@ -71,3 +51,26 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+
+%% Internal functions
+
+parse_xapi_request(ReqResult) ->
+    Result = case ReqResult of
+                 {ok,{response,[{struct, PreResult}]}} -> PreResult;
+                 _Other -> {error, unknown}
+             end,
+    Result.
+
+xapi_request(Req, Params, State) ->
+    ReqResult = xmlrpc:call(State#sref.host, 80, "/",{call, Req, [State#sref.sref | Params]}),
+
+    Result = case parse_xapi_request(ReqResult) of
+                 {error, unknown} -> error;
+                 PreResult -> case proplists:get_value('Value', PreResult) of
+                                  {array, List} -> List;
+                                  {struct, Struct} -> Struct;
+                                  String -> String
+                              end
+             end,
+    Result.
