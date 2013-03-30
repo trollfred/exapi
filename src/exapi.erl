@@ -7,7 +7,6 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -export([start/2, start_link/2, stop/0]).
--export([start_sync/0]).
 -export([request/1, request/2]).
 
 -record(sref, {sref = "", host = ""}).
@@ -19,9 +18,6 @@ start(Host, AuthInfo) ->
 start_link(Host, AuthInfo) ->
     {ok, _Pid} = gen_server:start_link({local, ?SERVER}, ?MODULE, [Host, AuthInfo], []),
     ok.
-
-start_sync() ->
-    application:start(sync).
 
 stop() ->
     case gen_server:call(?SERVER, stop) of
