@@ -8,3 +8,7 @@ ok
 ["OpaqueRef:7d701968-dc32-a0dd-c605-a0b7ae5deba7"]
 3> exapi:stop().
 ok
+
+TODO:
+- Add reconnect
+- ???
