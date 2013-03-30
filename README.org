@@ -16,6 +16,6 @@ ok
 
 ok
 
-* TODO
+* Tasks
 ** Add reconnect
 ** ???
