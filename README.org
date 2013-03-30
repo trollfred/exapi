@@ -1,6 +1,8 @@
+* Introduction
+
 Wrapper for xenapi.
 
-Example:
+* Example:
 
 1> exapi:start_link("xen", ["username", "password"]).
 ok
@@ -9,6 +11,6 @@ ok
 3> exapi:stop().
 ok
 
-TODO:
-- Add reconnect
-- ???
+* TODO:
+** Add reconnect
+** ???
