@@ -6,18 +6,28 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--export([start/2]).
+-export([start/2, start_link/2, stop/0]).
 -export([start_sync/0]).
 -export([request/1, request/2]).
 
 -record(sref, {sref = "", host = ""}).
 
 start(Host, AuthInfo) ->
+    {ok, _Pid} = gen_server:start({local, ?SERVER}, ?MODULE, [Host, AuthInfo], []),
+    ok.
+
+start_link(Host, AuthInfo) ->
     {ok, _Pid} = gen_server:start_link({local, ?SERVER}, ?MODULE, [Host, AuthInfo], []),
     ok.
 
 start_sync() ->
     application:start(sync).
+
+stop() ->
+    case gen_server:call(?SERVER, stop) of
+        ok -> ok
+    end,
+    ok.
 
 request(Req) ->
     Result = gen_server:call(?SERVER, {call, Req}),
@@ -38,7 +48,11 @@ handle_call({call, Req}, _From, State) ->
 
 handle_call({call, Req, Params}, _From, State) ->
     Result = xapi_request(Req, Params, State),
-    {reply, Result, State}.
+    {reply, Result, State};
+
+handle_call(stop, _From, State) ->
+    _Result = xapi_request('session.logout', [], State),
+    {stop, normal, ok, State}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -64,7 +78,6 @@ parse_xapi_request(ReqResult) ->
 
 xapi_request(Req, Params, State) ->
     ReqResult = xmlrpc:call(State#sref.host, 80, "/",{call, Req, [State#sref.sref | Params]}),
-
     Result = case parse_xapi_request(ReqResult) of
                  {error, unknown} -> error;
                  PreResult -> case proplists:get_value('Value', PreResult) of
