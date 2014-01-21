@@ -62,18 +62,18 @@ request(Pid, Method, Params) ->
     gen_server:call(Pid, {call, Method, Params}, infinity).
 
 xapi_get_session(Host, Password, Login, Port) ->
-    {ok, {response, [{struct, Result}]}} = xmlrpc:call(Host, Port, "/", {call, ?LOGIN, [Login, Password]}),
-    proplists:get_value('Value', Result).
+    {ok, {response, [{struct, Result}]}} = xmlrpc:call(Host, Port, ?PATH, {call, ?LOGIN, [Login, Password]}),
+    proplists:get_value(?VALUE, Result).
 
 xapi_request(Method, Params, State) ->
     xapi_request(State#state.host, State#state.port, Method, Params, State).
 
 xapi_request(Host, Port, Method, Params, State) ->
-    ReqResult = xmlrpc:call(Host, Port, "/", {call, Method, [State#state.sref | Params]}),
+    ReqResult = xmlrpc:call(Host, Port, ?PATH, {call, Method, [State#state.sref | Params]}),
     %% io:format("~p~n", [ReqResult]),
     Result = case parse_xapi_request(ReqResult) of
-                 {error, unknown} -> error;
-                 PreResult -> case proplists:get_value('Value', PreResult) of
+                 {error, Other} -> Other;
+                 PreResult -> case proplists:get_value(?VALUE, PreResult) of
                                   {array, List} -> List;
                                   {struct, Struct} -> Struct;
                                   String -> String
@@ -84,6 +84,6 @@ xapi_request(Host, Port, Method, Params, State) ->
 parse_xapi_request(ReqResult) ->
     Result = case ReqResult of
                  {ok,{response,[{struct, PreResult}]}} -> PreResult;
-                 _Other -> {error, unknown}
+                 Other -> {error, Other}
              end,
     Result.

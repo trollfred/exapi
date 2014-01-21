@@ -1,5 +1,9 @@
 -record(state, {sref = "", host = "", port = 80}).
 
+%% Values for xml-rpc
+-define(VALUE, "Value").
+-define(PATH, "/").
+
 %% Default connection settings
 -define(USER, "root").
 -define(PORT, 80).
