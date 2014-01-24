@@ -8,3 +8,5 @@ ebin
 *_pb.hrl
 .idea
 *.iml
+exapi.sublime-project
+exapi.sublime-workspace
