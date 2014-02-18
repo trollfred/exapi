@@ -1,4 +1,4 @@
--record(state, {sref = "", host = "", port = 80}).
+-record(state, {sref = "", connection = {}}).
 
 %% Values for xml-rpc
 -define(VALUE, "Value").

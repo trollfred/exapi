@@ -11,6 +11,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([start_link/1]).
 -export([start_link/2]).
 -export([start_link/3]).
 -export([start_link/4]).
@@ -19,6 +20,9 @@
 -export([request/2]).
 -export([request/3]).
 
+start_link(Path) ->
+    gen_server:start_link(?MODULE, {local, {Path, ?USER}}, []).
+
 start_link(Host, Password) ->
     start_link(Host, Password, ?USER).
 
@@ -26,14 +30,18 @@ start_link(Host, Password, Login) ->
     start_link(Host, Password, Login, ?PORT).
 
 start_link(Host, Password, Login, Port) ->
-    gen_server:start_link(?MODULE, {Host, Password, Login, Port}, []).
+    gen_server:start_link(?MODULE, {remote, {Host, Password, Login, Port}}, []).
 
 stop(Pid) ->
     gen_server:call(Pid, stop).
 
-init({Host, Password, Login, Port}) ->
+init({local, {Path, Login}}) ->
+    SessionRef = xapi_get_session(Path, Login),
+    {ok, #state{sref = SessionRef, connection = {local, {Path, Login}}}};
+
+init({remote,{Host, Password, Login, Port}}) ->
     SessionRef = xapi_get_session(Host, Password, Login, Port),
-    {ok, #state{sref = SessionRef, host = Host, port = Port}}.
+    {ok, #state{sref = SessionRef, connection = {remote, {Host, Password, Login, Port}}}}.
 
 handle_call({call, Req, Params}, _From, State) ->
     Result = xapi_request(Req, Params, State),
@@ -61,29 +69,39 @@ request(Pid, Method) ->
 request(Pid, Method, Params) ->
     gen_server:call(Pid, {call, Method, Params}, infinity).
 
-xapi_get_session(Host, Password, Login, Port) ->
-    {ok, {response, [{struct, Result}]}} = xmlrpc:call(Host, Port, ?PATH, {call, ?LOGIN, [Login, Password]}),
-    proplists:get_value(?VALUE, Result).
+xapi_get_session(Path, Login) ->
+    {ok, {response, [{struct, Result}]}} = xmlrpc:call(Path, "/", {call, ?LOGIN, [Login, ""]}),
+    proplists:get_value("Value", Result).
 
-xapi_request(Method, Params, State) ->
-    xapi_request(State#state.host, State#state.port, Method, Params, State).
+xapi_get_session(Host, Password, Login, Port) ->
+    {ok, {response, [{struct, Result}]}} = xmlrpc:call(Host, Port, "/", {call, ?LOGIN, [Login, Password]}),
+    proplists:get_value("Value", Result).
+
+xapi_request(Method, Params, #state{connection = {local, {Path, _Login}}} = State) ->
+    xapi_request(Path, Method, Params, State);
+
+xapi_request(Method, Params, #state{connection = {remote, {Host, _Password, _Login, Port}}} = State) ->
+    xapi_request(Host, Port, Method, Params, State).
+
+xapi_request(Path, Method, Params, State) ->
+    ReqResult = xmlrpc:call(Path, "/", {call, Method, [State#state.sref | Params]}),
+    parse_xapi_request(ReqResult).
 
 xapi_request(Host, Port, Method, Params, State) ->
-    ReqResult = xmlrpc:call(Host, Port, ?PATH, {call, Method, [State#state.sref | Params]}),
-    %% io:format("~p~n", [ReqResult]),
-    Result = case parse_xapi_request(ReqResult) of
-                 {error, Other} -> Other;
-                 PreResult -> case proplists:get_value(?VALUE, PreResult) of
+    ReqResult = xmlrpc:call(Host, Port, "/", {call, Method, [State#state.sref | Params]}),
+    parse_xapi_request(ReqResult).
+
+parse_xapi_request(ReqResult) ->
+    One = case ReqResult of
+                 {ok,{response,[{struct, PreResult}]}} -> PreResult;
+                 _Other -> {error, unknown}
+             end,
+    Two = case One of
+                 {error, unknown} -> {error, unknown};
+                 Three -> case proplists:get_value("Value", Three) of
                                   {array, List} -> List;
                                   {struct, Struct} -> Struct;
                                   String -> String
                               end
              end,
-    Result.
-
-parse_xapi_request(ReqResult) ->
-    Result = case ReqResult of
-                 {ok,{response,[{struct, PreResult}]}} -> PreResult;
-                 Other -> {error, Other}
-             end,
-    Result.
+    Two.
