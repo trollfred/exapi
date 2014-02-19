@@ -3,6 +3,7 @@
 %% Values for xml-rpc
 -define(VALUE, "Value").
 -define(PATH, "/").
+-define(DEFAULT_SOCKET_PATH, "/var/xapi/xapi").
 
 %% Default connection settings
 -define(USER, "root").

@@ -11,6 +11,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([start_link/0]).
 -export([start_link/1]).
 -export([start_link/2]).
 -export([start_link/3]).
@@ -19,6 +20,9 @@
 
 -export([request/2]).
 -export([request/3]).
+
+start_link() ->
+    start_link(?DEFAULT_SOCKET_PATH).
 
 start_link(Path) ->
     gen_server:start_link(?MODULE, {local, {Path, ?USER}}, []).
